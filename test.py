@@ -8,6 +8,8 @@ import openai
 from openai import OpenAI
 import os 
 from dotenv import load_dotenv
+from serpapi import GoogleSearch
+import json 
 
 import textwrap
 # Set Tesseract executable path
@@ -18,6 +20,7 @@ summarizer = pipeline("summarization", model="facebook/bart-large-cnn",framework
 load_dotenv()
 api_key = os.getenv("OPENAI_API_KEY")
 client = OpenAI(api_key=api_key)
+serpapi_key = os.getenv("SERPAPI_KEY")
 
 
 def extract_doc(file):
@@ -74,14 +77,32 @@ def summarize_large_text(text):
     return summarized_text.strip()
 
 
-def explain(text):    
+def explain(text):
     response = client .chat.completions.create(
         model= "gpt-4o",
         messages=[
             {
               "role":"developer",
-              "content":"Take this information go through it and give me all the main points of the text , the details , explain what it is trying to say and give it in very detailed form , bring out all the important points , give examples and always  talk a lot more about it , I want you to explain it to the point that a 5 year old will understand it  also try and make it complex for a 50 year old also explain all the main details and points in the text"
-                  
+              "content":"""
+                I want you to process this text in two ways and return the output in JSON format with two keys: 
+                'bullets' and 'explanation'. 
+
+                1. **Bullets**: Extract the key terms from this text in a **simple bullet format**. 
+                 - Only include the **most relevant** key terms, important concepts, and main points. 
+                - Do NOT explain—just list the terms.
+
+                2. **Explanation**: Take the same text and provide a **detailed** breakdown.
+                 - Explain all the **main points**, important details, and core ideas from the text, I want you to touch on it each part 
+                - Use **examples** to clarify meaning of each part also for easy understanding 
+                 - Ensure the explanation is **easy enough for a 5-year-old**, but also **detailed enough for a 50-year-old expert**.
+                 - Always **expand on key ideas** instead of summarizing briefly.
+
+                Return the result  **strictly** as a valid JSON dictionary like this:
+                {
+                 "bullets": ["key term 1", "key term 2", "key term 3"],
+                 "explanation": "Full detailed explanation here."
+                }
+                """
             },
             {
                 "role":"user",
@@ -89,10 +110,48 @@ def explain(text):
             }
         ]
     )
-    return response.choices[0].message.content.strip()
+    try:
+        return json.loads(response.choices[0].message.content.strip())
+    except json.JSONDecodeError:
+        try:
+            return eval(response.choices[0].message.content.strip())
+        except Exception:
+            print("Error: OpenAI did not return valid JSON. Full response:")
+            print(response.choices[0].message.content.strip())
+            return None
+
+#Work on trying to get the chatgpt api to retuen the result in a format that you can manually read from and then use the search api also to get certain information 
+
+# def Search(text):
+#     response = client .chat.completions.create(
+#         model= "gpt-4o",
+#         messages=[
+#             {
+#               "role":"developer",
+#               "content":"Extract the key terms from this summary in a bullet point format."
+                  
+#             },
+#             {
+#                 "role":"user",
+#                 "content": text
+#             }
+#         ]
+#     )
+#     query = response.choices[0].message.content.strip()
+
+#     params = {
+#         "q": query,
+#         "api_key": serpapi_key,
+#         "num": 7 # Limit to top 5 results
+#     }
+#     search = GoogleSearch(params)
+#     results = search.get_dict()
+#     return results.get("organic_results",[])
+
+
 
 # Load PDF
-file = "S.pdf"
+file = "p.pdf"
 text = extract_pdf(file)
 
 # Summarize in chunks
@@ -102,3 +161,4 @@ explained = explain(text)
 # Print result
 print("\nFinal Summarized Text:\n", final_summary)
 print("\n Everything explaned :\n" , explained)
+print(explained["bullets"])
