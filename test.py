@@ -8,6 +8,9 @@ import openai
 from openai import OpenAI
 import os 
 from dotenv import load_dotenv
+import hashlib
+import redis
+from pptx import Presentation
 from serpapi import GoogleSearch
 import json 
 import re
@@ -22,6 +25,16 @@ load_dotenv()
 api_key = os.getenv("OPENAI_API_KEY")
 client = OpenAI(api_key=api_key)
 serpapi_key = os.getenv("SERPAPI_KEY")
+
+def validate_file(file):
+    """Checks if the file exists and is not empty."""
+    if not os.path.exists(file):
+        raise FileNotFoundError(f"Error: The file '{file}' does not exist.")
+    
+    if os.path.getsize(file) == 0:
+        raise ValueError(f"Error: The file '{file}' is empty.")
+
+    return True
 
 
 def extract_doc(file):
@@ -67,6 +80,28 @@ def extract_pdf(file):
 
     return "\n\n".join(text).strip()
 
+def extract_ppt(file):
+    #Extract text from a powerpoint file (PPT/PPTX)
+    pres = Presentation(file)
+    text = []
+
+    for slide in pres.slides:
+        slide_text = []
+
+        for shape in slide.shapes :
+            if hasattr(shape, "text") and shape.text.strip():
+                slide_text.append(shape.text.strip())
+
+        # Extract Notes (if available)
+        if slide.has_notes_slide and slide.notes_slide.notes_text_frame:
+            notes_text = slide.notes_slide.notes_text_frame.text.strip()
+            if notes_text:
+                slide_text.append(f"\n📝 Speaker Notes:\n{notes_text}")
+
+        if slide_text:
+            text.append("\n".join(slide_text))
+
+    return "\n\n".join(text)
 
 def chunk_text(text, chunk_size=1024):
     """Splits text into smaller chunks with max tokens of 1024 (or less)."""
@@ -79,10 +114,11 @@ def chunk_text(text, chunk_size=1024):
 
     for word in words:
         current_chunck.append(word)
+
         if len(" ".join(current_chunck)) >= chunk_size:
             chunks.append(" ".join(current_chunck))
-
             current_chunck = []
+
     if current_chunck:
         chunks.append(" ".join(current_chunck))
 
@@ -121,15 +157,20 @@ def summarize_large_text(text):
 #                  - Do NOT explain—just list the terms.
 
 #                 2. **Explanation**: Take the same text and provide a **detailed** breakdown.
-#                  - Explain all the **main points**, important details, and core ideas from the text, I want you to touch on it each part 
-#                 - Use **examples** to clarify meaning of each part also for easy understanding 
-#                  - Ensure the explanation is **easy enough for a 5-year-old**, but also **detailed enough for a 50-year-old expert**.
+#                  - Explain all the **main points**, important details, and core ideas from the text, I want you to touch on it each select part 
+#                 - Use two to three small and larges **examples** to clarify meaning of each part also for easy understanding 
+#                  - Ensure the explanation is **easy enough for a 5-year-old**, but also **detailed enough for a very genus and gifted college student**.
 #                  - Always **expand on key ideas** instead of summarizing briefly.
-
+#                 3. **Notes** : I want you to give expressive notes to try and take the most important concepts and points 
+#                   - Let it be be optimized , in a list , and still talk about each concepts 
+#                   - Check and make sure that is is clean and understanable 
+#                   - Work and try to thinkin the way a teache to try and set test and exams from thuis text when it comes to note taking , be like a harvard student who went to yale and MIT for post grdaduates 
+#         
 #                 Return the result  **strictly** as a raw JSON without Markdown formatting "" like this :
 #                 {{
 #                     "bullets": ["key term 1", "key term 2", "key term 3"],
-#                     "explanation": "Full detailed explanation here."
+#                     "explanation": "Full detailed explanation here.",
+#                     "Notes" : "Fulle detailed explanation here. "
 #                 }}
 #                 """
 #             },

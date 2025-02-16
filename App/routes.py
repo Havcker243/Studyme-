@@ -1,55 +1,25 @@
-from flask import Blueprint
-from flask import Blueprint, request, jsonify
-from App.reader import extract_doc, extraxct_pdf
+from flask import Blueprint, request, jsonify, Flask 
+from pipelines import process_file
 #Blueprint( this is used to organize all the large files and endpoints used in the project )
 
 main = Blueprint("main", __name__)
 
-#The main endpoint for the program
-@main.route('/')
-def home():
-    return "Starting the studyme bot "
+app = Flask(__name__)
 
-@main.route('/summarize', method = ['POST'])
-
-@main.route('/flask_card', method = ['POST'])
-
-@main.route('/summarize', method = ['GET'])
-
-@main.route('/flask_card', method = ['GET'])
-
-
-@main.route('/parse-doc', method = ['POST'])
-def parse_doc():
-    if "file" not in request.files:
-        return jsonify({"error": "No file uploaded!"}), 400
-
-    file = request.files["file"]
-    if not (file.filename.lower().endswith(".doc") or file.filename.lower().endswith(".docx")):
-        return jsonify({"error": "Invalid file type. Please upload a DOC or DOCX file."}), 400
-
-    try:
-        extract_doc(file)
-        # return jsonify({"content": text}), 200
-    except Exception as e:
-            return jsonify({"error": f"Failed to parse Word document: {str(e)}"}), 500
+@app.route('/process-file', methods=['POST'])
+def process_file_api():
+    """API route to handle file uploads and processing."""
+    file = request.files['file']
+    file_type = file.filename.split('.')[-1]  # Get file extension
+    file_path = f"./uploads/{file.filename}"
     
-
-@main.route('/parse-pdf', method = ['POST'])
-def parse_pdf():
-    if "file" not in request.files:
-        return jsonify({"error": "No file uploaded!"}), 400
-
-    file = request.files["file"]
-    if not file.filename.lower().endswith(".pdf"):
-        return jsonify({"error": "Invalid file type. Please upload a PDF."}), 400
-
-    try:
-        extraxct_pdf(file)
-        # return jsonify({"content": text}), 200
-    except Exception as e:
-        return jsonify({"error": f"Failed to parse PDF: {str(e)}"}), 500
+    file.save(file_path)  # Save file temporarily
     
+    try:
+        result = process_file(file_path, file_type)
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
 
-def summarize():
-    return "y"
+if __name__ == '__main__':
+    app.run(debug=True)
