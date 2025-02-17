@@ -3,7 +3,6 @@ from PIL import Image
 from pdf2image import convert_from_path
 from pptx import Presentation
 import pytesseract
-from transformers import pipeline
 import docx
 # Set Tesseract executable path
 pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
@@ -12,9 +11,9 @@ poppler_path = r"C:\poppler-24.08.0\Library\bin"
 def extract_doc(file):
     doc = docx.Document(file)
     text = []
-    for paragraphs in doc.paragraphs:
-        if paragraphs.text.strip():  # Ignore empty paragraphs
-                text.append(paragraphs.text)
+    for paragraph in doc.paragraphs:
+        if paragraph.text.strip():  # Ignore empty paragraphs
+                text.append(paragraph.text)
 
      # Extract text from tables
     for table in doc.tables:
@@ -34,6 +33,12 @@ def extract_pdf(file):
     """Extracts text from a PDF, handles multi-page PDFs, and falls back to OCR if needed."""
     reader = PdfReader(file)
     text = []
+
+    # Check if the PDF is encrypted
+    if reader.is_encrypted:
+        print("❌ PDF is encrypted, skipping extraction.")
+        return "❌ This PDF is encrypted and cannot be processed."
+
 
     # Extract text from all pages
     for page in reader.pages:
@@ -72,8 +77,4 @@ def extract_ppt(file):
             text.append("\n".join(slide_text))
 
     return "\n\n".join(text)
-
-# summarizer = pipeline("summarization", model="facebook/bart-large-cnn")
-# file = "p.pdf"
-# text = extract_pdf(file)
 

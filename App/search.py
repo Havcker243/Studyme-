@@ -16,7 +16,7 @@ def search_using_bullets(parsed_response):
     Takes the parsed OpenAI response, extracts the 'bullets' list,
     and performs a web search for each term using SerpAPI.
     """
-    if not parsed_response or "bullets" not in parsed_response:
+    if not parsed_response or not isinstance(parsed_response, dict) or "bullets" not in parsed_response:
         return {"error": "No valid bullets extracted from OpenAI response."}
 
     bullets = list(set(parsed_response["bullets"]))  # Extract key terms
@@ -32,10 +32,12 @@ def search_using_bullets(parsed_response):
         }
         search = GoogleSearch(params)
         results = search.get_dict().get("organic_results", [])
+
         search_results[term] = [
-            {"title": result["title"], 
-             "link": result.get("link", result.get("redirect_link", "No link available"))
-             }
+            {
+                "title": result["title"], 
+                 "link": result.get("link", result.get("redirect_link", "No link available"))
+            }
                for result in results] # Store search results per key term
 
     return search_results

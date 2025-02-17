@@ -300,7 +300,7 @@ print(t ,"\n")
 q , a = "", ""
 print("\n" + "-" * 50 + "\n")
 print("Here are the Flashcards\n")
-j = flashcards(text)
+j = flashcards(t)
 c2 = j['Cards']
 m2 = j['MCQ']
 

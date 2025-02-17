@@ -38,8 +38,11 @@ def process_file_api():
     file_path = os.path.join(upload_dir, file.filename)
     file.save(file_path)  # Save file temporarily
 
+    generate_flashcards = request.form.get("generate_flashcards", "false").lower() == "true"
+
+
     try:
-        result = process_file(file_path, file_type)
+        result = process_file(file_path, file_type, generate_flashcards)
         return jsonify(result)
     except Exception as e:
         return jsonify({"error": str(e)}), 500  # Return a 500 error for internal failures
