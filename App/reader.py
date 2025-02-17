@@ -73,8 +73,7 @@ def extract_ppt(file):
 
     return "\n\n".join(text)
 
-summarizer = pipeline("summarization", model="facebook/bart-large-cnn")
-file = "p.pdf"
-text = extraxct_pdf(file)
-print(summarizer(text, max_length=130, min_length=30, do_sample=False))
+# summarizer = pipeline("summarization", model="facebook/bart-large-cnn")
+# file = "p.pdf"
+# text = extract_pdf(file)
 

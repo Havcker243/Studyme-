@@ -14,6 +14,10 @@ def process_file(file_path, file_type):
         text = extract_ppt(file_path)
     else:
         raise ValueError("Unsupported file type!")
+    
+    # Validate if text extraction was successful
+    if not text.strip():
+        return {"error": "❌ Failed to extract text from document."}
 
     # Step 2: Summarize & Explain
     # cached_summary = cache_summary(text)

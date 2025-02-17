@@ -4,8 +4,14 @@ import json
 import re
 from dotenv import load_dotenv
 import os 
+load_dotenv()
+serpapi_key = os.getenv("SERPAPI_KEY")
+
+if not serpapi_key:
+    raise ValueError("❌ Error: SERPAPI_KEY is missing. Please set it in the .env file.")
 
 def search_using_bullets(parsed_response):
+
     """
     Takes the parsed OpenAI response, extracts the 'bullets' list,
     and performs a web search for each term using SerpAPI.
@@ -13,7 +19,7 @@ def search_using_bullets(parsed_response):
     if not parsed_response or "bullets" not in parsed_response:
         return {"error": "No valid bullets extracted from OpenAI response."}
 
-    bullets = parsed_response["bullets"]  # Extract key terms
+    bullets = list(set(parsed_response["bullets"]))  # Extract key terms
     search_results = {}
 
     serpapi_key = os.getenv("SERPAPI_KEY")  # Ensure API key is set
@@ -26,6 +32,10 @@ def search_using_bullets(parsed_response):
         }
         search = GoogleSearch(params)
         results = search.get_dict().get("organic_results", [])
-        search_results[term] = [{"title": result["title"], "link": result["redirect_link"]} for result in results] # Store search results per key term
+        search_results[term] = [
+            {"title": result["title"], 
+             "link": result.get("link", result.get("redirect_link", "No link available"))
+             }
+               for result in results] # Store search results per key term
 
     return search_results

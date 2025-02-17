@@ -25,6 +25,7 @@ load_dotenv()
 api_key = os.getenv("OPENAI_API_KEY")
 client = OpenAI(api_key=api_key)
 serpapi_key = os.getenv("SERPAPI_KEY")
+Open_router_key = os.getenv("OPEN_ROUTER_KEY")
 
 def validate_file(file):
     """Checks if the file exists and is not empty."""
@@ -37,27 +38,27 @@ def validate_file(file):
     return True
 
 
-def extract_doc(file):
-    doc = docx.Document(file)
-    text = []
+# def extract_doc(file):
+#     doc = docx.Document(file)
+#     text = []
 
-    #Extract normal text 
-    for paragraphs in doc.paragraphs:
-        if paragraphs.text.strip():  # Ignore empty paragraphs
-            text.append(paragraphs.text)
+#     #Extract normal text 
+#     for paragraphs in doc.paragraphs:
+#         if paragraphs.text.strip():  # Ignore empty paragraphs
+#             text.append(paragraphs.text)
 
-    # Extract text from tables
-    for table in doc.tables:
-        table_data = []
-        for row in table.rows:
-            row_data = [cell.text.strip() for cell in row.cells if cell.text.strip()]
-            if row_data:
-                table_data.append(" | ".join(row_data))
+#     # Extract text from tables
+#     for table in doc.tables:
+#         table_data = []
+#         for row in table.rows:
+#             row_data = [cell.text.strip() for cell in row.cells if cell.text.strip()]
+#             if row_data:
+#                 table_data.append(" | ".join(row_data))
 
-        if table_data:
-            text.append("\n".join(table_data))
+#         if table_data:
+#             text.append("\n".join(table_data))
 
-    return "\n\n".join(text).strip()
+#     return "\n\n".join(text).strip()
 
 
 def extract_pdf(file):
@@ -80,28 +81,28 @@ def extract_pdf(file):
 
     return "\n\n".join(text).strip()
 
-def extract_ppt(file):
-    #Extract text from a powerpoint file (PPT/PPTX)
-    pres = Presentation(file)
-    text = []
+# def extract_ppt(file):
+#     #Extract text from a powerpoint file (PPT/PPTX)
+#     pres = Presentation(file)
+#     text = []
 
-    for slide in pres.slides:
-        slide_text = []
+#     for slide in pres.slides:
+#         slide_text = []
 
-        for shape in slide.shapes :
-            if hasattr(shape, "text") and shape.text.strip():
-                slide_text.append(shape.text.strip())
+#         for shape in slide.shapes :
+#             if hasattr(shape, "text") and shape.text.strip():
+#                 slide_text.append(shape.text.strip())
 
-        # Extract Notes (if available)
-        if slide.has_notes_slide and slide.notes_slide.notes_text_frame:
-            notes_text = slide.notes_slide.notes_text_frame.text.strip()
-            if notes_text:
-                slide_text.append(f"\n📝 Speaker Notes:\n{notes_text}")
+#         # Extract Notes (if available)
+#         if slide.has_notes_slide and slide.notes_slide.notes_text_frame:
+#             notes_text = slide.notes_slide.notes_text_frame.text.strip()
+#             if notes_text:
+#                 slide_text.append(f"\n📝 Speaker Notes:\n{notes_text}")
 
-        if slide_text:
-            text.append("\n".join(slide_text))
+#         if slide_text:
+#             text.append("\n".join(slide_text))
 
-    return "\n\n".join(text)
+#     return "\n\n".join(text)
 
 def chunk_text(text, chunk_size=1024):
     """Splits text into smaller chunks with max tokens of 1024 (or less)."""
@@ -125,20 +126,85 @@ def chunk_text(text, chunk_size=1024):
     return chunks
 
 
-def summarize_large_text(text):
-    """Summarizes large text by breaking it into chunks and summarizing each separately."""
-    text_chunks = chunk_text(text, chunk_size=1024)  # Break text into chunks
-    summarized_text = []
+# def summarize_large_text(text):
+#     """Summarizes large text by breaking it into chunks and summarizing each separately."""
+#     text_chunks = chunk_text(text, chunk_size=1024)  # Break text into chunks
+#     summarized_text = []
 
-    for chunk in text_chunks:
-        input_length = len(chunk.split())
+#     for chunk in text_chunks:
+#         input_length = len(chunk.split())
 
-        max_len = min(300, int(input_length * 0.5))
+#         max_len = min(300, int(input_length * 0.5))
 
-        summary = summarizer(chunk, max_length=max_len , min_length=int(max_len* 0.5), do_sample=False)
-        summarized_text.append(summary[0]['summary_text'])
+#         summary = summarizer(chunk, max_length=max_len , min_length=int(max_len* 0.5), do_sample=False)
+#         summarized_text.append(summary[0]['summary_text'])
 
-    return " ".join(summarized_text).strip()
+#     return " ".join(summarized_text).strip()
+
+
+def flashcards(text):
+    response = client.chat.completions.create(
+                model="gpt-4o",
+                messages=[
+                    {
+                        "role": "system",
+                        "content": """ 
+                         I want you to go through the whole ext and try and 
+                         extract the most important things , from concepts to definitionss, examples , facts and details , think like a teacher 
+                         and take in consideration mutiple test worthy question from the text and develop a a question with multi -choice and also 
+                         develop a question and an answer this should be proccesed in three ways and return the output in a json format 
+                         with 2 keys "MCQ" and "Cards"
+
+                         1. **Cards**: Think in a flashcard kind of way help put the question here and then give me the answer for the question also 
+
+                         2. **MCQ**: Should contain the question and 4 other possible answers an be different or similar but they all have to be gotten from the test 
+                         the real answer will be one of the options but it should be randomized 
+
+                         Return the result **Strictly** as a raw JSON without Markdown formatting "" like this:
+                         **Output Format**
+                         {
+                            "Cards": [
+                                    {"Question": "What is X ?", "answer": "X is ....."},
+                                    {"Question": "What is X ?", "answer": "X is ....."}, 
+                                    {"Question": "What is X ?", "answer": "X is ....."}, 
+                                    {"Question": "What is X ?", "answer": "X is ....."} 
+                                    ], 
+
+                            "MCQ": [
+                                    {"Question": "Questions Here", "options":[Option1, Option2, Option3 , Option4], "correct_answer": "Option3"}, 
+                                    {"Question": "Questions Here", "options":[Option1, Option2, Option3 , Option4], "correct_answer": "Option2"}, 
+                                    {"Question": "Questions Here", "options":[Option1, Option2, Option3 , Option4], "correct_answer": "Option1"}, 
+                                    {"Question": "Questions Here", "options":[Option1, Option2, Option3 , Option4], "correct_answer": "Option4"}, 
+                                    {"Question": "Questions Here", "options":[Option1, Option2, Option3 , Option4], "correct_answer": "Option3"},
+                                    {"Question": "Questions Here", "options":[Option1, Option2, Option3 , Option4], "correct_answer": "Option1"}
+                                    
+                                    ]
+                         } 
+                         """
+                    },
+
+                    {
+                        "role": "user",
+                        "content": text
+                    }
+                ]
+        )
+    answer = response.choices[0].message.content.strip()
+    try:
+        clean_text = answer.replace("```json", "").replace("```", "").strip()
+        parsed_reponse = json.loads(clean_text)
+    except json.JSONDecodeError:
+        print("Error: Deepseek did not return valid JSON")
+        print("Raw Response:", parsed_reponse)
+        return None
+    
+    cards = parsed_reponse.get("Cards", [])
+    MCQ = parsed_reponse.get("MCQ", [])
+    
+    return {"Cards": cards, "MCQ": MCQ}
+
+
+
 
 
 
@@ -149,8 +215,8 @@ def summarize_large_text(text):
 #             {
 #               "role":"developer",
 #               "content":"""
-#                 I want you to process this text in two ways and return the output in JSON format with two keys: 
-#                 'bullets' and 'explanation'. 
+#                 I want you to process this text in three ways and return the output in JSON format with three keys: 
+#                 'bullets' , "Notes "and 'explanation'. 
 
 #                 1. **Bullets**: Extract the key terms from this text in a **simple bullet format**. 
 #                  - Only include the **most relevant** key terms, important concepts, and main points. 
@@ -161,6 +227,7 @@ def summarize_large_text(text):
 #                 - Use two to three small and larges **examples** to clarify meaning of each part also for easy understanding 
 #                  - Ensure the explanation is **easy enough for a 5-year-old**, but also **detailed enough for a very genus and gifted college student**.
 #                  - Always **expand on key ideas** instead of summarizing briefly.
+
 #                 3. **Notes** : I want you to give expressive notes to try and take the most important concepts and points 
 #                   - Let it be be optimized , in a list , and still talk about each concepts 
 #                   - Check and make sure that is is clean and understanable 
@@ -223,17 +290,44 @@ def summarize_large_text(text):
 
 
 # Load PDF
-file = "A 25-Year-Old Bet Comes Due_ Has Tech Destroyed Society_ _ WIRED.pdf"
+file = "p.pdf"
 text = extract_pdf(file)
 print(text)
 print("\n")
 t = chunk_text(text, 1024)
 print("Here are the chuncks\n")
 print(t ,"\n")
-h = summarize_large_text(t)
-print("Here are the summarized\n")
-print(h)
+q , a = "", ""
+print("\n" + "-" * 50 + "\n")
+print("Here are the Flashcards\n")
+j = flashcards(text)
+c2 = j['Cards']
+m2 = j['MCQ']
 
+for mp in c2:
+    q , a = mp['Question'], mp['answer']
+    print("Question:", q, "\nAnswer:", a)
+
+for np in m2:
+    q , o = np['Question'], np['options']
+
+    print("Question:", q)
+    for n in range(len(o)):
+        print("\nOptions:", o[n])
+
+
+
+print("\n")
+print("\n")
+print("\n")
+print("\n")
+print("\n")
+print("\n")
+print("\n" + "-" * 50 + "\n")
+
+# h = summarize_large_text(t)
+# print("Here are the summarized\n")
+# print(h)
 # Summarize in chunks
 # final_summary = summarize_large_text(text)
 # explained = explain(text)
