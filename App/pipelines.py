@@ -35,7 +35,7 @@ def process_file(file_path, file_type, generate_flashcards=False):
     #     return cached_summary  # Use cached version if available
 
     try:
-        logging.info("Generating information......")
+        logging.info("Generating simple information......")
         summary = summarize_large_text(text)
         if summary is None:
             summary = "Summary is not avalable"

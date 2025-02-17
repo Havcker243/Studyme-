@@ -74,6 +74,6 @@ def flashcards(text):
 
         
     except json.JSONDecodeError:
-        print("Error: Deepseek did not return valid JSON")
+        print("Error: Openapi did not return valid JSON")
         print("Raw Response:", answer)
         return {"Cards": [], "MCQ": []}
