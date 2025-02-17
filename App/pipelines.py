@@ -46,12 +46,16 @@ def process_file(file_path, file_type, generate_flashcards=False):
 
 
     try: 
-        logging.info("Generating explanation......")
+        logging.info("Generating explanation & Notes ......")
         explanation = explain(text)
     
     except Exception as e:
         logging.error(f"❌ Explantion failed: {str(e)}")
         explanation = "❌ Failed to generate explanation."
+
+    #Extract notes separately
+    Notes = explanation.get("Notes", "Notes not available")
+
         
 
     # Step 3: Perform Web Search
@@ -75,11 +79,13 @@ def process_file(file_path, file_type, generate_flashcards=False):
     final_result = {
         "summary": summary,
         "explanation": explanation,
+        "notes": Notes,
         "search_results": search_results
     }
 
     if generate_flashcards:
         final_result["flashcards"] = flashcards_data
+        
     #cache_summary(text, final_result)
 
     logging.info("Processing Complete")
