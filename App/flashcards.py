@@ -68,11 +68,12 @@ def flashcards(text):
 
         if not cards and not MCQ:
             print("Warning : Empty flashcards received from OpenAI.")
+
             return {"Cards": [], "MCQ": []}
         
         return {"Cards": cards, "MCQ": MCQ}
 
-        
+
     except json.JSONDecodeError:
         print("Error: Openapi did not return valid JSON")
         print("Raw Response:", answer)
