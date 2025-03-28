@@ -91,3 +91,4 @@ def process_file(file_path, file_type, generate_flashcards=False):
     logging.info("Processing Complete")
 
     return final_result
+ 

@@ -4,14 +4,13 @@ from pdf2image import convert_from_path
 import pytesseract
 from transformers import pipeline
 import docx
-import openai
 from openai import OpenAI
 import os 
 from dotenv import load_dotenv
 import hashlib
+from serpapi import GoogleSearchResults, GoogleSearch
 import redis
 from pptx import Presentation
-from serpapi import GoogleSearch
 import json 
 import re
 
@@ -123,7 +122,7 @@ def chunk_text(text, chunk_size=1024):
     if current_chunck:
         chunks.append(" ".join(current_chunck))
 
-    return chunks
+    return "\n\n".join(chunks)
 
 
 # def summarize_large_text(text):
@@ -195,7 +194,7 @@ def flashcards(text):
         parsed_reponse = json.loads(clean_text)
     except json.JSONDecodeError:
         print("Error: Deepseek did not return valid JSON")
-        print("Raw Response:", parsed_reponse)
+        print("Raw Response:", answer)
         return None
     
     cards = parsed_reponse.get("Cards", [])
@@ -262,7 +261,7 @@ def flashcards(text):
 
 # def search_using_bullets(parsed_response):
 #     """
-#     Takes the parsed OpenAI response, extracts the 'bullets' list,
+#     Takes the parsed OpenAI response, extracts all the 'bullets' list,
 #     and performs a web search for each term using SerpAPI.
 #     """
 #     if not parsed_response or "bullets" not in parsed_response:
@@ -293,6 +292,8 @@ def flashcards(text):
 file = "p.pdf"
 text = extract_pdf(file)
 print(text)
+print("\n")
+print("\n")
 print("\n")
 t = chunk_text(text, 1024)
 print("Here are the chuncks\n")
