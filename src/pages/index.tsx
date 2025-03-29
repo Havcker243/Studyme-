@@ -2,13 +2,15 @@ import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
-import { BookText, Sparkles, BookOpen } from "lucide-react";
+import { BookText, Sparkles, BookOpen, Library } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
 import FileUploader from '@/components/FileUploader';
 import SummaryModeSelector from '@/components/SummaryModeSelector';
 import TabsView from '@/components/TabsView';
 import Spinner from '@/components/Spinner';
 import { useIsMobile } from '@/hooks/use-mobile';
 import DecorativeShapes from '@/components/DecorativeShapes';
+import { useFlashcardSets } from '@/hooks/use-flashcare-sets';
 
 const Index = () => {
   const [file, setFile] = useState<File | null>(null);
@@ -18,6 +20,8 @@ const Index = () => {
   const [summaryContent, setSummaryContent] = useState<string>('');
   const [flashcards, setFlashcards] = useState<Array<{ question: string; answer: string }>>([]);
   const isMobile = useIsMobile();
+  const navigate = useNavigate();
+  const { addFlashcardSet } = useFlashcardSets();
 
   const processDocument = async () => {
     if (!file) {
@@ -37,7 +41,7 @@ const Index = () => {
         setSummaryContent("This in-depth analysis provides a comprehensive examination of your document's content.\n\nThe document begins by establishing a theoretical framework for understanding complex systems in organizational structures. It then provides extensive evidence from case studies across multiple industries, demonstrating how these principles apply in real-world scenarios.\n\nThe author presents a compelling argument for adopting adaptive management strategies, drawing on both quantitative data and qualitative assessments from industry leaders. Statistical analysis supports the correlation between implementation of these strategies and improved business outcomes.\n\nFurthermore, the document explores potential challenges in implementation and offers detailed mitigation strategies. The conclusion synthesizes these findings and presents a roadmap for practical application.");
       }
 
-      setFlashcards([
+      const generatedFlashcards = [
         {
           question: "What is the main thesis of the document?",
           answer: "Adaptive management strategies lead to improved business outcomes in complex organizational systems."
@@ -58,8 +62,9 @@ const Index = () => {
           question: "What metrics are suggested for measuring success?",
           answer: "Operational efficiency, employee engagement, innovation output, and financial performance indicators."
         }
-      ]);
+      ];
 
+      setFlashcards(generatedFlashcards);
       setIsResultReady(true);
       toast.success('Document processed successfully!');
     } catch (error) {
@@ -79,6 +84,31 @@ const Index = () => {
     setSummaryMode(mode);
   };
 
+  const saveFlashcardSet = () => {
+    if (!file || !isResultReady) return;
+    
+    const enhancedFlashcards = flashcards.map((card, index) => ({
+      id: `card-${index + 1}`,
+      question: card.question,
+      answer: card.answer,
+      mcqOptions: [
+        { id: `opt-1-${index}`, text: card.answer, isCorrect: true },
+        { id: `opt-2-${index}`, text: "Incorrect option 1", isCorrect: false },
+        { id: `opt-3-${index}`, text: "Incorrect option 2", isCorrect: false },
+        { id: `opt-4-${index}`, text: "Incorrect option 3", isCorrect: false },
+      ]
+    }));
+    
+    const newSet = addFlashcardSet({
+      title: file.name.replace(/\.[^/.]+$/, ""),
+      description: `Summary: ${summaryContent.substring(0, 100)}...`,
+      flashcards: enhancedFlashcards
+    });
+    
+    toast.success('Flashcard set saved successfully!');
+    navigate(`/flashcards/${newSet.id}`);
+  };
+
   return (
     <div className="min-h-screen bg-background bg-study-pattern flex flex-col relative">
       <DecorativeShapes variant="minimal" />
@@ -88,6 +118,15 @@ const Index = () => {
           <div className="flex items-center">
             <BookOpen className="h-7 w-7 text-primary mr-2" />
             <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-study-700">StudyMe</h1>
+          </div>
+          
+          <div className="flex items-center space-x-4">
+            <Link to="/flashcards">
+              <Button variant="ghost" className="flex items-center">
+                <Library className="h-5 w-5 mr-2" />
+                My Flashcards
+              </Button>
+            </Link>
           </div>
         </div>
       </header>
@@ -148,6 +187,13 @@ const Index = () => {
                     flashcards={flashcards}
                     isLoading={isProcessing}
                   />
+                  
+                  <div className="mt-6 text-center">
+                    <Button onClick={saveFlashcardSet} className="w-full mb-3">
+                      <BookOpen className="mr-2 h-4 w-4" />
+                      Save as Flashcard Set
+                    </Button>
+                  </div>
                 </div>
               )}
             </div>
@@ -159,6 +205,13 @@ const Index = () => {
                   flashcards={flashcards}
                   isLoading={isProcessing}
                 />
+                
+                <div className="mt-6 text-center">
+                  <Button onClick={saveFlashcardSet} className="w-full">
+                    <BookOpen className="mr-2 h-4 w-4" />
+                    Save as Flashcard Set
+                  </Button>
+                </div>
               </div>
             )}
           </div>

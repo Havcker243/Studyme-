@@ -1,7 +1,9 @@
+
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, ChevronRight, RotateCcw } from 'lucide-react';
+import { ChevronLeft, ChevronRight, RotateCcw, ExternalLink } from 'lucide-react';
 
 interface Flashcard {
   question: string;
@@ -98,24 +100,33 @@ const FlashcardView: React.FC<FlashcardViewProps> = ({
         </CardContent>
       </Card>
       
-      <div className="flex justify-center mt-4 space-x-2">
-        <Button 
-          variant="outline" 
-          size="icon" 
-          onClick={goToPrevious}
-          aria-label="Previous flashcard"
-        >
-          <ChevronLeft className="h-5 w-5" />
-        </Button>
+      <div className="flex justify-between mt-4">
+        <div className="flex space-x-2">
+          <Button 
+            variant="outline" 
+            size="icon" 
+            onClick={goToPrevious}
+            aria-label="Previous flashcard"
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </Button>
+          
+          <Button 
+            variant="outline" 
+            size="icon" 
+            onClick={goToNext}
+            aria-label="Next flashcard"
+          >
+            <ChevronRight className="h-5 w-5" />
+          </Button>
+        </div>
         
-        <Button 
-          variant="outline" 
-          size="icon" 
-          onClick={goToNext}
-          aria-label="Next flashcard"
-        >
-          <ChevronRight className="h-5 w-5" />
-        </Button>
+        <Link to="/flashcards/demo">
+          <Button variant="outline" size="sm">
+            Full Mode
+            <ExternalLink className="h-4 w-4 ml-1" />
+          </Button>
+        </Link>
       </div>
     </div>
   );
