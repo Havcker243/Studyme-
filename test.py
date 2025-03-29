@@ -276,7 +276,7 @@ def flashcards(text):
 #         params = {
 #             "q": term,
 #             "api_key": serpapi_key,
-#             "num": 3  # Limit to top 5 search results per term
+#             "num": 3  # Limit to top 6 search results per term
 #         }
 #         search = GoogleSearch(params)
 #         results = search.get_dict().get("organic_results", [])
