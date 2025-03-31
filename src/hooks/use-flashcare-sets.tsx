@@ -1,4 +1,5 @@
-import { useLocalStorage } from "./use-local-storage.tsx";
+
+import { useLocalStorage } from "./use-local-storage";
 
 export interface MCQOption {
   id: string;
@@ -17,6 +18,7 @@ export interface FlashcardSet {
   id: string;
   title: string;
   description: string;
+  summary?: string;  // Added summary field
   createdAt: string;
   flashcards: Flashcard[];
 }
@@ -26,6 +28,7 @@ const DEFAULT_FLASHCARD_SETS: FlashcardSet[] = [
     id: "demo",
     title: "Sample Business Strategy Document",
     description: "Key concepts from the business strategy document",
+    summary: "This document explores adaptive management strategies that lead to improved business outcomes in complex organizational systems. It presents case studies across multiple industries, statistical analysis, and qualitative assessments from industry leaders to support the main thesis. The document identifies key challenges in implementation, including resistance to change, resource constraints, and lack of organizational alignment. It recommends addressing these challenges through stakeholder engagement, phased implementation, and continuous monitoring with feedback loops. Success metrics suggested include operational efficiency, employee engagement, innovation output, and financial performance indicators.",
     createdAt: new Date().toISOString(),
     flashcards: [
       {

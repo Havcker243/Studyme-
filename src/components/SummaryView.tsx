@@ -4,7 +4,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
 import { ChevronRight, ExternalLink } from 'lucide-react';
 import TypingEffect from './TypingEffect';
-
 interface Link {
   title: string;
   url: string;
@@ -14,12 +13,14 @@ interface SummaryViewProps {
   summary: string;
   links?: Link[];
   isLoading?: boolean;
+  error?: string;
 }
 
 const SummaryView: React.FC<SummaryViewProps> = ({ 
   summary, 
   links = [],
-  isLoading = false 
+  isLoading = false,
+  error
 }) => {
   if (isLoading) {
     return (

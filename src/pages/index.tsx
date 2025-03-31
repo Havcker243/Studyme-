@@ -87,7 +87,7 @@ const Index = () => {
   const saveFlashcardSet = () => {
     if (!file || !isResultReady) return;
     
-    const enhancedFlashcards = flashcards.map((card, index) => ({
+    const enhancedFlashcards = flashcards.length > 0 ? flashcards.map((card, index) => ({
       id: `card-${index + 1}`,
       question: card.question,
       answer: card.answer,
@@ -97,17 +97,22 @@ const Index = () => {
         { id: `opt-3-${index}`, text: "Incorrect option 2", isCorrect: false },
         { id: `opt-4-${index}`, text: "Incorrect option 3", isCorrect: false },
       ]
-    }));
+    })) : [];
     
     const newSet = addFlashcardSet({
       title: file.name.replace(/\.[^/.]+$/, ""),
-      description: `Summary: ${summaryContent.substring(0, 100)}...`,
+      description: summaryContent 
+        ? `Summary: ${summaryContent.substring(0, 100)}...`
+        : `Flashcards: ${flashcards.length} cards`,
+      summary: summaryContent || "",
       flashcards: enhancedFlashcards
     });
     
     toast.success('Flashcard set saved successfully!');
     navigate(`/flashcards/${newSet.id}`);
   };
+
+  const canSave = isResultReady && (summaryContent.trim() !== "" || flashcards.length > 0);
 
   return (
     <div className="min-h-screen bg-background bg-study-pattern flex flex-col relative">
@@ -189,7 +194,11 @@ const Index = () => {
                   />
                   
                   <div className="mt-6 text-center">
-                    <Button onClick={saveFlashcardSet} className="w-full mb-3">
+                    <Button 
+                      onClick={saveFlashcardSet} 
+                      className="w-full"
+                      disabled={!canSave}
+                    >
                       <BookOpen className="mr-2 h-4 w-4" />
                       Save as Flashcard Set
                     </Button>
@@ -207,7 +216,11 @@ const Index = () => {
                 />
                 
                 <div className="mt-6 text-center">
-                  <Button onClick={saveFlashcardSet} className="w-full">
+                  <Button 
+                    onClick={saveFlashcardSet} 
+                    className="w-full"
+                    disabled={!canSave}
+                  >
                     <BookOpen className="mr-2 h-4 w-4" />
                     Save as Flashcard Set
                   </Button>
@@ -228,3 +241,4 @@ const Index = () => {
 };
 
 export default Index;
+

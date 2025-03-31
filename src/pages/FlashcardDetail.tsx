@@ -1,324 +1,299 @@
 
-import React, { useState } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
+import React, { useState, useEffect, useRef } from 'react';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ChevronLeft, ChevronRight, RotateCcw, Book, Trash, ArrowLeft, Home, CheckCircle2, XCircle } from 'lucide-react';
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { ChevronLeft, ChevronRight, RotateCcw, Save, Home, List, Check, X, Edit, Trash2, Plus } from "lucide-react";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { useFlashcardSets, Flashcard, MCQOption } from '@/hooks/use-flashcare-sets';
-import { Checkbox } from "@/components/ui/checkbox";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { useIsMobile } from '@/hooks/use-mobile';
+import { useFlashcardSets } from '@/hooks/use-flashcare-sets';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "@/components/ui/alert-dialog";
+import DecorativeShapes from '@/components/DecorativeShapes';
+import SummaryView from '@/components/SummaryView';
+
+interface Flashcard {
+  id: string;
+  question: string;
+  answer: string;
+  mcqOptions?: { id: string; text: string; isCorrect: boolean }[];
+}
 
 const FlashcardDetail = () => {
-  const { id = "demo" } = useParams();
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { getFlashcardSet, updateFlashcardSet, deleteFlashcardSet } = useFlashcardSets();
-  const flashcardSet = getFlashcardSet(id);
-  const isMobile = useIsMobile();
-  
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const [flashcardSet, setFlashcardSet] = useState<{
+    id: string;
+    title: string;
+    description: string;
+    summary?: string;
+    createdAt: string;
+    flashcards: Flashcard[];
+  } | null>(null);
+  const [currentCardIndex, setCurrentCardIndex] = useState(0);
   const [showAnswer, setShowAnswer] = useState(false);
-  const [mode, setMode] = useState<'flashcard' | 'mcq'>('flashcard');
-  const [selectedOptionIds, setSelectedOptionIds] = useState<{[key: string]: string}>({});
-  const [showResults, setShowResults] = useState(false);
-  const [score, setScore] = useState({ correct: 0, total: 0 });
-  
-  if (!flashcardSet) {
-    return (
-      <div className="container py-10 text-center">
-        <h2 className="text-2xl mb-4">Flashcard set not found</h2>
-        <Button asChild>
-          <Link to="/flashcards"><Home className="mr-2 h-4 w-4" />Go to Flashcard Library</Link>
-        </Button>
-      </div>
-    );
-  }
+  const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
+  const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
+  const [animateCard, setAnimateCard] = useState(false);
+  const cardRef = useRef<HTMLDivElement>(null);
 
-  const flashcards = flashcardSet.flashcards;
-  const currentFlashcard = flashcards[currentIndex];
-
-  const goToPrevious = () => {
-    setShowAnswer(false);
-    setShowResults(false);
-    setCurrentIndex((prev) => (prev === 0 ? flashcards.length - 1 : prev - 1));
-  };
-
-  const goToNext = () => {
-    setShowAnswer(false);
-    setShowResults(false);
-    setCurrentIndex((prev) => (prev === flashcards.length - 1 ? 0 : prev + 1));
-  };
-
-  const flipCard = () => {
-    setShowAnswer((prev) => !prev);
-  };
-
-  const handleOptionSelect = (flashcardId: string, optionId: string) => {
-    setSelectedOptionIds({
-      ...selectedOptionIds,
-      [flashcardId]: optionId
-    });
-  };
-
-  const checkAnswers = () => {
-    let correctCount = 0;
-    const total = flashcards.length;
-    
-    flashcards.forEach(card => {
-      if (card.mcqOptions) {
-        const selectedOptionId = selectedOptionIds[card.id];
-        const correctOption = card.mcqOptions.find(option => option.isCorrect);
-        
-        if (selectedOptionId && correctOption && selectedOptionId === correctOption.id) {
-          correctCount++;
-        }
+  useEffect(() => {
+    if (id) {
+      const set = getFlashcardSet(id);
+      if (set) {
+        setFlashcardSet(set);
+      } else {
+        navigate('/flashcards');
       }
-    });
-    
-    setScore({ correct: correctCount, total });
-    setShowResults(true);
-    
-    toast.success(`You scored ${correctCount} out of ${total}!`);
+    }
+  }, [id, getFlashcardSet, navigate]);
+
+  // Reset animation and answer state when changing cards
+  useEffect(() => {
+    setSelectedAnswer(null);
+    setShowAnswer(false);
+    setIsCorrect(null);
+    setAnimateCard(false);
+  }, [currentCardIndex]);
+
+  // Vibration feedback function
+  const triggerVibration = (pattern: number | number[]) => {
+    if (navigator.vibrate) {
+      navigator.vibrate(pattern);
+    }
   };
 
-  const resetQuiz = () => {
-    setSelectedOptionIds({});
-    setShowResults(false);
-    setCurrentIndex(0);
+  const handleNextCard = () => {
+    setSelectedAnswer(null);
+    setShowAnswer(false);
+    if (flashcardSet) {
+      setCurrentCardIndex((prevIndex) => (prevIndex + 1) % flashcardSet.flashcards.length);
+    }
   };
 
-  const isOptionCorrect = (flashcardId: string, optionId: string): boolean | null => {
-    if (!showResults) return null;
-    
-    const flashcard = flashcards.find(card => card.id === flashcardId);
-    if (!flashcard || !flashcard.mcqOptions) return null;
-    
-    const selectedOption = flashcard.mcqOptions.find(option => option.id === optionId);
-    if (!selectedOption) return null;
-    
-    return selectedOption.isCorrect;
+  const handlePreviousCard = () => {
+    setSelectedAnswer(null);
+    setShowAnswer(false);
+    if (flashcardSet) {
+      setCurrentCardIndex((prevIndex) =>
+        prevIndex === 0 ? flashcardSet.flashcards.length - 1 : prevIndex - 1
+      );
+    }
   };
 
-  const deleteSet = () => {
-    if (window.confirm('Are you sure you want to delete this flashcard set? This action cannot be undone.')) {
+  const handleAnswerSelection = (optionId: string) => {
+    setSelectedAnswer(optionId);
+    
+    if (!flashcardSet) return;
+    
+    const currentCard = flashcardSet.flashcards[currentCardIndex];
+    if (!currentCard.mcqOptions) return;
+    
+    const correctAnswer = currentCard.mcqOptions.find(opt => opt.isCorrect);
+    const isAnswerCorrect = correctAnswer?.id === optionId;
+    
+    setAnimateCard(true);
+    setIsCorrect(isAnswerCorrect);
+    
+    if (isAnswerCorrect) {
+      // Provide positive feedback
+      toast.success("Correct answer!");
+      triggerVibration(100); // Short vibration for correct answer
+    } else {
+      // Provide feedback for incorrect answer
+      toast.error("Incorrect. Try again!");
+      triggerVibration([100, 50, 100]); // Pattern vibration for incorrect
+    }
+    
+    // Reset animation after a delay
+    setTimeout(() => {
+      setAnimateCard(false);
+    }, 1000);
+  };
+
+  const isCorrectAnswerSelected = () => {
+    if (!flashcardSet || !flashcardSet.flashcards[currentCardIndex].mcqOptions) return false;
+    const correctAnswer = flashcardSet.flashcards[currentCardIndex].mcqOptions?.find(opt => opt.isCorrect);
+    return correctAnswer?.id === selectedAnswer;
+  };
+
+  const handleFlipCard = () => {
+    setShowAnswer(!showAnswer);
+    // Provide subtle feedback when flipping
+    triggerVibration(50);
+  };
+
+  const handleDeleteSet = () => {
+    if (id) {
       deleteFlashcardSet(id);
-      toast.success('Flashcard set deleted successfully');
+      toast.success('Flashcard set deleted successfully!');
       navigate('/flashcards');
     }
   };
 
+  if (!flashcardSet) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Card className="w-full max-w-md">
+          <CardContent className="text-center">
+            <p className="text-muted-foreground">Loading flashcard set...</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  const currentCard = flashcardSet.flashcards[currentCardIndex];
+  const hasMCQOptions = currentCard.mcqOptions && currentCard.mcqOptions.length > 0;
+  
+  // Determine card animation class
+  const cardAnimationClass = animateCard
+    ? isCorrect
+      ? "animate-[pulse_0.5s_ease-in-out] border-green-500 border-2"
+      : "animate-[shake_0.5s_ease-in-out] border-red-500 border-2"
+    : "";
+
   return (
     <div className="min-h-screen bg-background bg-study-pattern flex flex-col relative">
+      <DecorativeShapes />
       <header className="w-full py-4 px-6 border-b bg-card relative z-10">
         <div className="max-w-6xl mx-auto flex justify-between items-center">
-          <Link to="/" className="flex items-center">
-            <Home className="h-5 w-5 text-primary mr-2" />
-            <span className="font-medium">StudyMe</span>
+          <Link to="/flashcards" className="flex items-center space-x-2 text-sm">
+            <ArrowLeft className="h-4 w-4" />
+            <span>Back to Flashcard Sets</span>
           </Link>
-          
-          <div className="flex items-center space-x-4">
-            <Button variant="ghost" asChild className="flex items-center">
-              <Link to="/flashcards">
-                <List className="h-5 w-5 mr-2" />
-                {isMobile ? '' : 'All Flashcards'}
-              </Link>
-            </Button>
-          </div>
+          <Link to="/" className="flex items-center space-x-2 text-sm">
+            <Home className="h-4 w-4" />
+            <span>Home</span>
+          </Link>
         </div>
       </header>
 
       <main className="flex-1 py-8 px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="max-w-4xl mx-auto">
-          <div className="mb-6 flex justify-between items-center">
-            <div>
-              <Button variant="outline" asChild size="sm" className="mb-4">
-                <Link to="/flashcards">
-                  <ChevronLeft className="h-4 w-4 mr-1" />
-                  Back to Library
-                </Link>
-              </Button>
-              <h1 className="text-2xl font-bold">{flashcardSet.title}</h1>
-              <p className="text-muted-foreground">{flashcardSet.description}</p>
-            </div>
-            
-            <div className="flex gap-2">
-              <Button variant="outline" size="icon" onClick={deleteSet} title="Delete set">
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-
-          <Tabs defaultValue="flashcard" className="w-full mb-6" onValueChange={(value) => setMode(value as 'flashcard' | 'mcq')}>
-            <TabsList className="grid w-full grid-cols-2 mb-6">
-              <TabsTrigger value="flashcard">Flashcard Mode</TabsTrigger>
-              <TabsTrigger value="mcq">Multiple Choice Quiz</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="flashcard" className="mt-0">
-              <Card 
-                className="w-full min-h-[300px] cursor-pointer relative transition-all duration-300 transform hover:-translate-y-1"
-                onClick={flipCard}
-              >
-                <CardContent className="p-6 flex flex-col items-center justify-center min-h-[300px]">
-                  <div className="absolute top-3 right-3 text-xs text-muted-foreground">
-                    {currentIndex + 1} / {flashcards.length}
-                  </div>
-                  
-                  <div className="text-center">
-                    {!showAnswer ? (
-                      <>
-                        <h3 className="text-lg font-medium mb-2">Question</h3>
-                        <p className="text-xl">{currentFlashcard.question}</p>
-                      </>
-                    ) : (
-                      <>
-                        <h3 className="text-lg font-medium mb-2">Answer</h3>
-                        <p className="text-xl">{currentFlashcard.answer}</p>
-                      </>
-                    )}
-                  </div>
-                  
-                  <div className="absolute bottom-3 right-3">
-                    <Button variant="ghost" size="sm" onClick={(e) => {
-                      e.stopPropagation();
-                      flipCard();
-                    }}>
-                      <RotateCcw className="h-4 w-4 mr-1" />
-                      Flip
+          <Card className="overflow-hidden border-primary/10 shadow-lg shadow-primary/5">
+            <div className="absolute inset-0 bg-gradient-study rounded-t-lg h-6"></div>
+            <CardHeader className="pt-10">
+              <CardTitle className="text-2xl font-bold flex items-center justify-between">
+                {flashcardSet.title}
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="destructive" size="icon">
+                      <Trash className="h-4 w-4" />
                     </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This action cannot be undone. This will permanently delete this flashcard set from your
+                        collection.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleDeleteSet}>Delete</AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Tabs defaultValue="flashcards" className="w-full">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="flashcards">Flashcards</TabsTrigger>
+                  <TabsTrigger value="summary" disabled={!flashcardSet.summary}>Summary</TabsTrigger>
+                </TabsList>
+                <TabsContent value="flashcards" className="mt-2">
+                  <div className="mb-4 text-sm text-muted-foreground">
+                    Card {currentCardIndex + 1} of {flashcardSet.flashcards.length}
                   </div>
-                </CardContent>
-              </Card>
-              
-              <div className="flex justify-between mt-4">
-                <div className="flex space-x-2">
-                  <Button 
-                    variant="outline" 
-                    size="icon" 
-                    onClick={goToPrevious}
-                    aria-label="Previous flashcard"
+                  <Card
+                    ref={cardRef}
+                    className={`w-full min-h-[200px] cursor-pointer relative transition-all duration-300 transform hover:-translate-y-1 ${cardAnimationClass}`}
+                    onClick={handleFlipCard}
                   >
-                    <ChevronLeft className="h-5 w-5" />
-                  </Button>
-                  
-                  <Button 
-                    variant="outline" 
-                    size="icon" 
-                    onClick={goToNext}
-                    aria-label="Next flashcard"
-                  >
-                    <ChevronRight className="h-5 w-5" />
-                  </Button>
-                </div>
-              </div>
-            </TabsContent>
-            
-            <TabsContent value="mcq" className="mt-0">
-              <Card className="mb-6">
-                <CardHeader>
-                  <CardTitle className="text-xl">Multiple Choice Quiz</CardTitle>
-                  <CardDescription>Select the correct answer for each question</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  {flashcards.map((flashcard, index) => (
-                    <div key={flashcard.id} className="border rounded-lg p-4">
-                      <div className="flex items-start justify-between">
-                        <h3 className="text-lg font-medium mb-2">{index + 1}. {flashcard.question}</h3>
-                        {showResults && (
-                          <div className="ml-2">
-                            {selectedOptionIds[flashcard.id] && 
-                             isOptionCorrect(flashcard.id, selectedOptionIds[flashcard.id]) ? (
-                              <Check className="h-5 w-5 text-green-500" />
-                            ) : (
-                              <X className="h-5 w-5 text-red-500" />
-                            )}
-                          </div>
-                        )}
-                      </div>
-                      
-                      {flashcard.mcqOptions && (
-                        <div className="mt-2 space-y-2">
-                          {flashcard.mcqOptions.map((option) => {
-                            const isSelected = selectedOptionIds[flashcard.id] === option.id;
-                            const isCorrect = isOptionCorrect(flashcard.id, option.id);
-                            let optionClassName = "flex items-start space-x-2 p-2 rounded";
-                            
-                            if (showResults) {
-                              if (isCorrect) {
-                                optionClassName += " bg-green-50 border border-green-200";
-                              } else if (isSelected) {
-                                optionClassName += " bg-red-50 border border-red-200";
-                              }
-                            } else if (isSelected) {
-                              optionClassName += " bg-gray-100 border border-gray-200";
-                            }
-                            
-                            return (
-                              <label key={option.id} className={optionClassName}>
-                                <Checkbox
-                                  checked={isSelected}
-                                  onCheckedChange={() => {
-                                    if (!showResults) {
-                                      handleOptionSelect(flashcard.id, option.id);
-                                    }
-                                  }}
-                                  disabled={showResults}
-                                  className="mt-1"
-                                />
-                                <span>{option.text}</span>
-                              </label>
-                            );
-                          })}
-                        </div>
+                    <CardContent className="flex flex-col items-center justify-center p-6">
+                      {!showAnswer ? (
+                        <>
+                          <h3 className="text-lg font-medium mb-2">Question</h3>
+                          <p className="text-xl text-center">{currentCard.question}</p>
+                        </>
+                      ) : (
+                        <>
+                          <h3 className="text-lg font-medium mb-2">Answer</h3>
+                          <p className="text-xl text-center">{currentCard.answer}</p>
+                        </>
                       )}
-                      
-                      {showResults && (
-                        <Collapsible className="mt-4">
-                          <CollapsibleTrigger asChild>
-                            <Button variant="outline" size="sm">Show Answer</Button>
-                          </CollapsibleTrigger>
-                          <CollapsibleContent className="mt-2 p-3 bg-gray-50 rounded-md">
-                            <p className="text-sm">{flashcard.answer}</p>
-                          </CollapsibleContent>
-                        </Collapsible>
-                      )}
-                    </div>
-                  ))}
-                </CardContent>
-                <CardFooter className="flex justify-between">
-                  {!showResults ? (
-                    <Button 
-                      onClick={checkAnswers} 
-                      className="w-full"
-                    >
-                      Check Answers
-                    </Button>
-                  ) : (
-                    <div className="w-full space-y-4">
-                      <div className="p-4 bg-gray-50 rounded-md text-center">
-                        <p className="text-lg font-medium">Your Score: {score.correct} / {score.total}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {score.correct === score.total 
-                            ? "Perfect score! Well done!" 
-                            : "Keep practicing to improve your score!"}
-                        </p>
-                      </div>
-                      <Button 
-                        onClick={resetQuiz} 
-                        variant="outline" 
-                        className="w-full"
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="absolute bottom-3 right-3"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleFlipCard();
+                        }}
                       >
                         <RotateCcw className="h-4 w-4 mr-2" />
-                        Retry Quiz
+                        Flip Card
                       </Button>
+                    </CardContent>
+                  </Card>
+                  {hasMCQOptions && (
+                    <div className="w-full mt-4 space-y-2">
+                      {currentCard.mcqOptions?.map((option) => (
+                        <Button
+                          key={option.id}
+                          variant="outline"
+                          className={`w-full justify-start ${
+                            selectedAnswer === option.id
+                              ? isCorrect
+                                ? "bg-green-100 border-green-500 text-green-700"
+                                : "bg-red-100 border-red-500 text-red-700"
+                              : ""
+                          }`}
+                          onClick={() => handleAnswerSelection(option.id)}
+                        >
+                          {selectedAnswer === option.id && (
+                            isCorrect ? (
+                              <CheckCircle2 className="mr-2 h-4 w-4 text-green-500" />
+                            ) : (
+                              <XCircle className="mr-2 h-4 w-4 text-red-500" />
+                            )
+                          )}
+                          {option.text}
+                        </Button>
+                      ))}
                     </div>
                   )}
-                </CardFooter>
-              </Card>
-            </TabsContent>
-          </Tabs>
+                  {hasMCQOptions && selectedAnswer && (
+                    <div className={`mt-4 p-3 rounded-md ${isCorrect ? 'bg-green-100 text-green-800 animate-fade-in' : 'bg-red-100 text-red-800 animate-fade-in'}`}>
+                      {isCorrect ? "Correct!" : "Incorrect. Try again."}
+                    </div>
+                  )}
+                  <div className="flex justify-between mt-4">
+                    <Button variant="outline" size="icon" onClick={handlePreviousCard} aria-label="Previous card">
+                      <ChevronLeft className="h-5 w-5" />
+                    </Button>
+                    <Button variant="outline" size="icon" onClick={handleNextCard} aria-label="Next card">
+                      <ChevronRight className="h-5 w-5" />
+                    </Button>
+                  </div>
+                </TabsContent>
+                <TabsContent value="summary" className="mt-2">
+                  {flashcardSet.summary ? (
+                    <SummaryView summary={flashcardSet.summary} />
+                  ) : (
+                    <div className="rounded-md p-4 border border-muted bg-muted/10 text-center">
+                      <p className="text-muted-foreground">No summary available for this flashcard set.</p>
+                    </div>
+                  )}
+                </TabsContent>
+              </Tabs>
+            </CardContent>
+          </Card>
         </div>
       </main>
 
@@ -332,3 +307,6 @@ const FlashcardDetail = () => {
 };
 
 export default FlashcardDetail;
+// This file is part of the StudyMe project, a web application designed to assist users in studying and understanding documents using AI technology. The code above defines a React component that displays flashcard details, including the ability to navigate between flashcards, view summaries, and delete flashcard sets.
+// The component utilizes various UI components and hooks to manage state and provide a smooth user experience. The design is responsive and includes features such as animations, feedback on user actions, and a clean layout.
+
