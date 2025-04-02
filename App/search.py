@@ -28,14 +28,14 @@ def search_using_bullets(parsed_response):
         params = {
             "q": term,
             "api_key": serpapi_key,
-            "num": 3  # Limit to top 5 search results per term
+            "num": 5  # Limit to top 5 search results per term
         }
         search = GoogleSearch(params)
         results = search.get_dict().get("organic_results", [])
 
         search_results[term] = [
             {
-                "title": result["title"], 
+                "title": result.get("title", "No title"),
                  "link": result.get("link", result.get("redirect_link", "No link available"))
             }
                for result in results] # Store search results per key term

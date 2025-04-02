@@ -1,12 +1,16 @@
 from PyPDF2 import PdfReader
 from PIL import Image
 from pdf2image import convert_from_path
+import os
+import tempfile
 from pptx import Presentation
 import pytesseract
 import docx
 # Set Tesseract executable path
-pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
-poppler_path = r"C:\poppler-24.08.0\Library\bin"
+pytesseract.pytesseract.tesseract_cmd = os.getenv("TESSERACT_PATH", "tesseract")
+# Set Poppler path for PDF to image conversion
+poppler_path = os.getenv("POPPLER_PATH", "poppler")
+
 
 def extract_doc(file):
     doc = docx.Document(file)
@@ -49,9 +53,9 @@ def extract_pdf(file):
     # If no text was extracted, fallback to OCR
     if not text:
         print("No selectable text found. Falling back to OCR...")
-        images = convert_from_path(file)
+        images = convert_from_path(file, poppler_path=poppler_path)
         ocr_text = " ".join([pytesseract.image_to_string(img) for img in images])
-        text.append(ocr_text) # Append OCR text instea dof overwriting 
+        text.append(ocr_text) # Append OCR text instead of overwriting 
 
     return "\n\n".join(text).strip()
 

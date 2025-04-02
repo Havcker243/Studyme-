@@ -1,9 +1,8 @@
-from reader import extract_pdf, extract_doc, extract_ppt
-from summarizer import summarize_large_text, explain
-from search import search_using_bullets
-from flashcards import flashcards
-import logging 
-
+from App.reader import extract_pdf, extract_doc, extract_ppt
+from App.summarizer import summarize_large_text, explain
+from App.search import search_using_bullets
+from App.flashcards import flashcards  # ✅ This was the missing one earlier
+import logging
 #from cache import cache_summary
 
 logging.basicConfig(level=logging.INFO)
@@ -54,7 +53,10 @@ def process_file(file_path, file_type, generate_flashcards=False):
         explanation = "❌ Failed to generate explanation."
 
     #Extract notes separately
-    Notes = explanation.get("Notes", "Notes not available")
+    if isinstance(explanation, dict):
+        Notes = explanation.get("Notes", "Notes not available")
+    else:
+        Notes = "Notes not available"
 
         
 

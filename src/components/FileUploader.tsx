@@ -2,11 +2,12 @@
 import { useState, useRef, useCallback } from "react";
 import { toast } from "sonner";
 import { FileText, X, Upload } from "lucide-react";
+import { uploadFile } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 
 interface FileUploaderProps {
-  onFileSelect: (file: File) => void;
+  onFileSelect: (parsedText: string) => void;
 }
 
 const FileUploader = ({ onFileSelect }: FileUploaderProps) => {
@@ -14,7 +15,7 @@ const FileUploader = ({ onFileSelect }: FileUploaderProps) => {
   const [dragActive, setDragActive] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const handleFileChange = useCallback((selectedFile: File) => {
+  const handleFileChange = useCallback(async(selectedFile: File) => {
     const allowedTypes = [
       'application/pdf',
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
@@ -29,7 +30,16 @@ const FileUploader = ({ onFileSelect }: FileUploaderProps) => {
     }
 
     setFile(selectedFile);
-    onFileSelect(selectedFile);
+
+    try {
+      const parsedText = await uploadFile(selectedFile); // ⬅️ upload and get parsed text
+      toast.success("File uploaded and parsed successfully!");
+      onFileSelect(parsedText); // ⬅️ send parsed text to parent
+    } catch (error: any) {
+      toast.error(`Upload failed: ${error.message}`);
+      console.error(error);
+    }
+
   }, [onFileSelect]);
 
   const handleDrag = useCallback((e: React.DragEvent) => {

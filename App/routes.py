@@ -1,51 +1,87 @@
-from flask import Blueprint, request, jsonify, Flask
-from pipelines import process_file
+from fastapi import APIRouter, UploadFile, File, HTTPException
+from fastapi.responses import JSONResponse
+
+from App.reader import extract_pdf, extract_doc, extract_ppt
+from App.summarizer import chunk_text, summarize_large_text, explain
+from App.flashcards import flashcards
+
 import os
+import tempfile
 
-# Create Flask App
-app = Flask(__name__)
+router = APIRouter()
 
-# Define Blueprint for better API structure
-main = Blueprint("main", __name__)
+# === File Parsing Endpoints ===
 
-# Allowed file extensions
-ALLOWED_EXTENSIONS = {"pdf", "docx", "pptx"}
-
-def allowed_file(filename):
-    """Check if uploaded file has an allowed extension."""
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-
-@app.route('/process-file', methods=['POST'])
-def process_file_api():
-    """API route to handle file uploads and processing."""
-    if "file" not in request.files:
-        return jsonify({"error": "No file provided"}), 400
-
-    file = request.files["file"]
-
-    if file.filename == "":
-        return jsonify({"error": "No selected file"}), 400
-
-    if not allowed_file(file.filename):
-        return jsonify({"error": "Invalid file type. Only PDF, DOCX, and PPTX are allowed."}), 400
-
-    file_type = file.filename.split('.')[-1]  # Get file extension
-    upload_dir = "./uploads"
-
-    # Ensure uploads directory exists
-    os.makedirs(upload_dir, exist_ok=True)
-
-    file_path = os.path.join(upload_dir, file.filename)
-    file.save(file_path)  # Save file temporarily
-
-    generate_flashcards = request.form.get("generate_flashcards", "false").lower() == "true"
-
-
+@router.post("/parse-pdf")
+async def parse_pdf(file: UploadFile = File(...)):
     try:
-        result = process_file(file_path, file_type, generate_flashcards)
-        return jsonify(result)
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
+            tmp.write(await file.read())
+            tmp_path = tmp.name
+        text = extract_pdf(tmp_path)
+        os.remove(tmp_path)
+        return {"text": text}
     except Exception as e:
-        return jsonify({"error": str(e)}), 500  # Return a 500 error for internal failures
+        raise HTTPException(status_code=500, detail=f"Failed to parse PDF: {str(e)}")
 
-if __name__ == "__main__":
-    app.run(debug=True)
+@router.post("/parse-docx")
+async def parse_docx(file: UploadFile = File(...)):
+    try:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".docx") as tmp:
+            tmp.write(await file.read())
+            tmp_path = tmp.name
+        text = extract_doc(tmp_path)
+        os.remove(tmp_path)
+        return {"text": text}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to parse DOCX: {str(e)}")
+
+@router.post("/parse-pptx")
+async def parse_pptx(file: UploadFile = File(...)):
+    try:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".pptx") as tmp:
+            tmp.write(await file.read())
+            tmp_path = tmp.name
+        text = extract_ppt(tmp_path)
+        os.remove(tmp_path)
+        return {"text": text}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to parse PPTX: {str(e)}")
+
+
+# === Text Processing Endpoints ===
+
+@router.post("/summarize")
+async def summarize(payload: dict):
+    try:
+        text = payload.get("text")
+        if not text:
+            raise HTTPException(status_code=400, detail="Missing text")
+        summary = summarize_large_text(text)
+        return {"summary": summary}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Summarization failed: {str(e)}")
+
+@router.post("/explain")
+async def explain_text(payload: dict):
+    try:
+        text = payload.get("text")
+        if not text:
+            raise HTTPException(status_code=400, detail="Missing text")
+        explanation = explain(text)
+        return explanation
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Explanation failed: {str(e)}")
+
+@router.post("/flashcards")
+async def generate_flashcards(payload: dict):
+    try:
+        text = payload.get("text")
+        if not text:
+            raise HTTPException(status_code=400, detail="Missing text")
+        fc_data = flashcards(text)
+        return fc_data
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Flashcard generation failed: {str(e)}")
+
+main = router
