@@ -5,7 +5,7 @@ from App.search import search_using_bullets
 from App.errors import handle_exceptions
 from App.cache import cache_summary
 from App.reader import extract_pdf, extract_doc, extract_ppt
-from App.summarizer import chunk_text, summarize_large_text, explain
+from App.summarizer import  summarize_large_text, explain
 from App.flashcards import flashcards
 import logging
 

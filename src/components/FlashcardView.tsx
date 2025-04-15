@@ -163,6 +163,8 @@ const FlashcardView: React.FC<FlashcardViewProps> = ({
               <>
                 <h3 className="text-lg font-medium mb-2">Question</h3>
                 <p className="text-xl">{currentFlashcard.question}</p>
+                <p> console.log("Current Flashcard:", currentFlashcard) </p>
+
                 
                 {hasMCQOptions && (
                   <div className="mt-4 space-y-2">

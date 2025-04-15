@@ -87,6 +87,7 @@ def explain(text):
             }
         ]
     )
+    print("calling Gpt in summarizer")
     answer = response.choices[0].message.content.strip()
     try:
 

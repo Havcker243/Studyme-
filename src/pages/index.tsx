@@ -16,12 +16,12 @@ import { uploadFile, processText } from "@/lib/utils";
 const Index = () => {
   const [file, setFile] = useState<File | null>(null);
   const [summaryMode, setSummaryMode] = useState<string>("brief");
+  const [explanation, setExplanation] = useState<string>("");
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [isResultReady, setIsResultReady] = useState<boolean>(false);
   const [summaryContent, setSummaryContent] = useState<string>("");
-  const [flashcards, setFlashcards] = useState<
-    Array<{ question: string; answer: string }>
-  >([]);
+  const [flashcards, setFlashcards] = useState< Array<{ question: string; answer: string }>>([]);
+  const [searchLinks, setSearchLinks] = useState<Array<{ title: string; url: string }>>([]);
   const isMobile = useIsMobile();
   const navigate = useNavigate();
   const { addFlashcardSet } = useFlashcardSets();
@@ -43,7 +43,24 @@ const Index = () => {
       const result = await processText(extractedText, summaryMode);
 
       // Step 3: Update frontend with the results
-      setSummaryContent(result.summary || "");
+      if (summaryMode === "brief") {
+
+        setSummaryContent(result.summary || "");
+      } 
+
+      else if (summaryMode === "detailed") {
+        setSummaryContent(result.explanation?.explanation || "");
+        setExplanation(result.explanation?.explanation || "");
+        const searchResults = result.search_results || {};
+        // Format the search results into an array
+        const formattedlinks = Object.values(searchResults).flat() as {
+        title: string;
+        url: string;
+        }[];
+
+        setSearchLinks(formattedlinks);
+
+      }
       setFlashcards(result.flashcards?.Cards || []); // if you use MCQ later, add those too
       setIsResultReady(true);
 
@@ -192,9 +209,11 @@ const Index = () => {
               {isResultReady && (
                 <div>
                   <TabsView
-                    summaryContent={summaryContent}
-                    flashcards={flashcards}
-                    isLoading={isProcessing}
+                     summaryContent={summaryMode === "brief" ? summaryContent : ""}
+                     explanation={summaryMode === "detailed" ? explanation : ""}
+                     flashcards={flashcards}
+                     isLoading={isProcessing}
+                     links={searchLinks}
                   />
 
                   <div className="mt-6 text-center">

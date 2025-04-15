@@ -10,11 +10,13 @@ import { uploadFile } from "@/lib/utils";
 
   interface TabsViewProps {
     summaryContent: string;
+    explanation?: string;
     flashcards: { question: string; answer: string }[];
     isLoading: boolean;
+    links: { title: string; url: string }[];
   }
 
-  const TabsView: React.FC<TabsViewProps> = ({ summaryContent, flashcards, isLoading }) => {
+  const TabsView: React.FC<TabsViewProps> = ({ summaryContent, flashcards, isLoading, links, explanation }) => {
 
   return (
     <div className="space-y-6">
@@ -26,8 +28,9 @@ import { uploadFile } from "@/lib/utils";
         <TabsContent value="summary">
           <SummaryView
             summary={summaryContent}
+            explanation={explanation}
             isLoading={isLoading}
-            links={[]}
+            links={links}
           />
         </TabsContent>
         <TabsContent value="flashcards">
