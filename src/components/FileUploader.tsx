@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 
 interface FileUploaderProps {
-  onFileSelect: (parsedText: string) => void;
+  onFileSelect: (parsedText: File) => void;
 }
 
 const FileUploader = ({ onFileSelect }: FileUploaderProps) => {
@@ -32,9 +32,9 @@ const FileUploader = ({ onFileSelect }: FileUploaderProps) => {
     setFile(selectedFile);
 
     try {
-      const parsedText = await uploadFile(selectedFile); // ⬅️ upload and get parsed text
+      // const parsedText = await uploadFile(selectedFile); //  upload and get parsed text
       toast.success("File uploaded and parsed successfully!");
-      onFileSelect(parsedText); // ⬅️ send parsed text to parent
+      onFileSelect(selectedFile); //  send parsed text to parent
     } catch (error: any) {
       toast.error(`Upload failed: ${error.message}`);
       console.error(error);

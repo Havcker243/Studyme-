@@ -1,9 +1,10 @@
 
-import React from 'react';
+import React, {useState} from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
 import { ChevronRight, ExternalLink } from 'lucide-react';
 import TypingEffect from './TypingEffect';
+
 interface Link {
   title: string;
   url: string;
@@ -11,6 +12,7 @@ interface Link {
 
 interface SummaryViewProps {
   summary: string;
+  explanation?: string;
   links?: Link[];
   isLoading?: boolean;
   error?: string;
@@ -18,10 +20,13 @@ interface SummaryViewProps {
 
 const SummaryView: React.FC<SummaryViewProps> = ({ 
   summary, 
+  explanation = "",
   links = [],
   isLoading = false,
   error
 }) => {
+  const [showExplanation, setShowExplanation] = useState(false);
+
   if (isLoading) {
     return (
       <Card className="w-full">
@@ -44,12 +49,22 @@ const SummaryView: React.FC<SummaryViewProps> = ({
 
   return (
     <Card className="w-full">
-      <CardHeader>
-        <CardTitle>Document Summary</CardTitle>
+      <CardHeader className="flex flex-col md:flex-row md:items-center justify-between">
+        <CardTitle>
+          {showExplanation ? "Detailed Explanation" : "Document Summary"}
+        </CardTitle>
+        {explanation && (
+          <Button size="sm" variant="outline" onClick={() => setShowExplanation(!showExplanation)}>
+            {showExplanation ? "Show Summary" : "Show Explanation"}
+          </Button>
+        )}
       </CardHeader>
+
       <CardContent>
         <div className="max-h-[400px] overflow-y-auto mb-4 pr-2">
-          <TypingEffect text={summary} className="text-md leading-relaxed" />
+          <TypingEffect 
+          text = {showExplanation ? explanation : summary}
+          className="text-md leading-relaxed" />
         </div>
         
         {links.length > 0 && (

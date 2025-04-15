@@ -2,6 +2,7 @@ from App.reader import extract_pdf, extract_doc, extract_ppt
 from App.summarizer import summarize_large_text, explain
 from App.search import search_using_bullets
 from App.flashcards import flashcards  # ✅ This was the missing one earlier
+from App.cache import cache_summary
 import logging
 #from cache import cache_summary
 
@@ -27,11 +28,11 @@ def process_file(file_path, file_type, generate_flashcards=False):
         logging.error("❌ Failed to extract text from document.")
         return {"error": "❌ Failed to extract text from document."}
 
-    # Step 2: Summarize & Explain
-    # cached_summary = cache_summary(text)
-    # if cached_summary:
-    #     logging.info(" Using cached summary.")
-    #     return cached_summary  # Use cached version if available
+    #Step 2: Summarize & Explain
+    cached_summary = cache_summary(text)
+    if cached_summary:
+        logging.info(" Using cached summary.")
+        return cached_summary  # Use cached version if available
 
     try:
         logging.info("Generating simple information......")
@@ -61,11 +62,15 @@ def process_file(file_path, file_type, generate_flashcards=False):
         
 
     # Step 3: Perform Web Search
-    if explanation is not None:
-        search_results = search_using_bullets(explanation)
+    search_results = {}
+    if explanation is not None and isinstance(explanation, dict) and "bullets" in explanation:
+        try:
+            search_results = search_using_bullets(explanation)
+        except Exception as e:
+            logging.error(f"Web search failed: {str(e)}")
+            search_results = {"error": str(e)}
     else:
         logging.warning("⚠️ No valid bullet points available for web search or explantion is empty .")
-        search_results = "Search did not run"
 
     flashcards_data = {"Cards": [], "MCQ": []}
     if generate_flashcards:
@@ -87,8 +92,9 @@ def process_file(file_path, file_type, generate_flashcards=False):
 
     if generate_flashcards:
         final_result["flashcards"] = flashcards_data
-        
-    #cache_summary(text, final_result)
+
+    #Save to cache    
+    cache_summary(text, final_result)
 
     logging.info("Processing Complete")
 

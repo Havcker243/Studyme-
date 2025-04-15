@@ -77,7 +77,7 @@ def explain(text):
                 {{
                     "bullets": ["key term 1", "key term 2", "key term 3"],
                     "explanation": "Full detailed explanation here.",
-                    "Notes" : "Fulle detailed explanation here. "
+                    "Notes" : "Fulle detailed notes  here. "
                 }}
                 """
             },

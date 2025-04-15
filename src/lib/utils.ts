@@ -10,6 +10,7 @@ export const uploadFile = async (file: File): Promise<string> => {
   formData.append("file", file);
 
   const fileType = file.name.split(".").pop();
+  console.log("File uploaded");
 
   let endpoint = "";
   if (fileType === "pdf") {
@@ -33,5 +34,23 @@ export const uploadFile = async (file: File): Promise<string> => {
   }
 
   const data = await response.json();
-  return data.text; // Assuming your backend returns { text: "..." }
+  return data.text; // returns the parsed text from the file
+};
+
+export const processText = async (text: string, mode: string) => {
+  const response = await fetch("http://127.0.0.1:8000/process-document", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ text, mode }),
+
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || "Failed to process document");
+  }
+
+  return await response.json(); // returns summary, explanation, flashcards, etc.
 };
