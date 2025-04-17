@@ -17,15 +17,15 @@ def flashcards(text):
                     {
                         "role": "system",
                         "content": """ 
-                         I want you to go through the whole ext and try and 
+                         I want you to go through the whole text and try and 
                          extract the most important things , from concepts to definitionss, examples , facts and details , think like a teacher 
                          and take in consideration mutiple test worthy question from the text and develop a a question with multi -choice and also 
                          develop a question and an answer this should be proccesed in three ways and return the output in a json format 
-                         with 2 keys "MCQ" and "Cards"
+                         with 2 keys "MCQ" and "Cards.Give me at least **20 Cards** and **20 MCQs** if the content allows. Do your best to extract deep, relevant information"
 
                          1. **Cards**: Think in a flashcard kind of way help put the question here and then give me the answer for the question also 
 
-                         2. **MCQ**: Should contain the question and 4 other possible answers an be different or similar but they all have to be gotten from the test 
+                         2. **MCQ**: Should contain the question and 4 other possible answers can be different or similar but they all have to be gotten from the test 
                          the real answer will be one of the options but it should be randomized 
 
                          Return the result **Strictly** as a raw JSON without Markdown formatting "" like this:

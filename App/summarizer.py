@@ -41,9 +41,10 @@ def summarize_large_text(text):
     for chunk in text_chunks:
         input_length = len(chunk.split())
 
-        max_len = min(300, int(input_length * 0.5))
+        max_len = max(50, min(300, int(input_length * 0.5)))
+        min_len = max(25, int(max_len * 0.5))
 
-        summary = summarizer(chunk, max_length=max_len , min_length=int(max_len* 0.5), do_sample=False)
+        summary = summarizer(chunk, max_length=max_len , min_length=min_len, do_sample=False)
         summarized_text.append(summary[0]['summary_text'])
 
     return " ".join(summarized_text).strip()

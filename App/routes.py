@@ -15,7 +15,7 @@ import tempfile
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
-def validate_file_size(file: UploadFile, max_size_mb: int = 20):
+def validate_file_size(file: UploadFile, max_size_mb: int = 40):
     """Validate that the file doesn't exceed max size"""
     max_size = max_size_mb * 1024 * 1024  # Convert to bytes
     file_size = 0
@@ -117,20 +117,15 @@ async def process_document(payload: SummaryModePayload):
             # Generate summary
             summary = summarize_large_text(text)
 
-            fc_data = flashcards(text)
-
         if mode == "detailed":
         
             # Generate explanation with bullets
             explanation_data = explain(text)
         
             # Generate search results from bullets
-            search_results = {}
             if explanation_data and "bullets" in explanation_data:
                 search_results = search_using_bullets(explanation_data)
         
-            # Generate flashcards
-            fc_data = flashcards(text)
         
         # Return all data
         return {

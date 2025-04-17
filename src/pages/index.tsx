@@ -20,8 +20,12 @@ const Index = () => {
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [isResultReady, setIsResultReady] = useState<boolean>(false);
   const [summaryContent, setSummaryContent] = useState<string>("");
-  const [flashcards, setFlashcards] = useState< Array<{ question: string; answer: string }>>([]);
-  const [searchLinks, setSearchLinks] = useState<Array<{ title: string; url: string }>>([]);
+  const [flashcards, setFlashcards] = useState<
+    Array<{ question: string; answer: string }>
+  >([]);
+  const [searchLinks, setSearchLinks] = useState<
+    Array<{ title: string; url: string }>
+  >([]);
   const isMobile = useIsMobile();
   const navigate = useNavigate();
   const { addFlashcardSet } = useFlashcardSets();
@@ -44,24 +48,28 @@ const Index = () => {
 
       // Step 3: Update frontend with the results
       if (summaryMode === "brief") {
-
         setSummaryContent(result.summary || "");
-      } 
-
-      else if (summaryMode === "detailed") {
+      } else if (summaryMode === "detailed") {
         setSummaryContent(result.explanation?.explanation || "");
         setExplanation(result.explanation?.explanation || "");
         const searchResults = result.search_results || {};
         // Format the search results into an array
         const formattedlinks = Object.values(searchResults).flat() as {
-        title: string;
-        url: string;
+          title: string;
+          url: string;
         }[];
 
         setSearchLinks(formattedlinks);
-
       }
-      setFlashcards(result.flashcards?.Cards || []); // if you use MCQ later, add those too
+      
+      const rawFlashcards = result.flashcards?.Cards || [];
+
+      const flashcards = rawFlashcards.map((card) => ({
+        question: card.Question || card.question || "No question provided",
+        answer: card.answer || "No answer provided",
+      }));
+
+      setFlashcards(flashcards); // if you use MCQ later, add those too
       setIsResultReady(true);
 
       toast.success("Document processed successfully!");
@@ -70,6 +78,32 @@ const Index = () => {
       console.error("Error processing document:", error);
     } finally {
       setIsProcessing(false);
+    }
+  };
+
+  const generateFlashcards = async () => {
+    try {
+      const textToUse = summaryMode === "brief" ? summaryContent : explanation;
+
+      if (!textToUse) {
+        toast.error("Nothing to generate flashcards from.");
+        return;
+      }
+
+      const response = await fetch("http://127.0.0.1:8000/flashcards", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: textToUse }),
+      });
+
+      if (!response.ok) throw new Error("Failed to generate flashcards");
+
+      const result = await response.json();
+      setFlashcards(result.Cards || []);
+      toast.success("Flashcards generated!");
+    } catch (error: any) {
+      console.error("Flashcard generation error:", error);
+      toast.error("Flashcard generation failed.");
     }
   };
 
@@ -209,12 +243,22 @@ const Index = () => {
               {isResultReady && (
                 <div>
                   <TabsView
-                     summaryContent={summaryMode === "brief" ? summaryContent : ""}
-                     explanation={summaryMode === "detailed" ? explanation : ""}
-                     flashcards={flashcards}
-                     isLoading={isProcessing}
-                     links={searchLinks}
+                    summaryContent={
+                      summaryMode === "brief" ? summaryContent : ""
+                    }
+                    explanation={summaryMode === "detailed" ? explanation : ""}
+                    flashcards={flashcards}
+                    isLoading={isProcessing}
+                    links={searchLinks}
                   />
+
+                  <Button
+                    onClick={generateFlashcards}
+                    className="w-full mt-4"
+                    disabled={isProcessing || (!summaryContent && !explanation)}
+                  >
+                    Generate Flashcards
+                  </Button>
 
                   <div className="mt-6 text-center">
                     <Button

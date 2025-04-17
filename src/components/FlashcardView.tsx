@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface Flashcard {
-  question: string;
+  Question: string;
   answer: string;
   mcqOptions?: { id: string; text: string; isCorrect: boolean }[];
 }
@@ -162,9 +162,7 @@ const FlashcardView: React.FC<FlashcardViewProps> = ({
             {!showAnswer ? (
               <>
                 <h3 className="text-lg font-medium mb-2">Question</h3>
-                <p className="text-xl">{currentFlashcard.question}</p>
-                <p> console.log("Current Flashcard:", currentFlashcard) </p>
-
+                <p className="text-xl">{currentFlashcard.Question}</p>
                 
                 {hasMCQOptions && (
                   <div className="mt-4 space-y-2">
